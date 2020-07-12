@@ -47,6 +47,7 @@ public class ProductController {
 			throw new RuntimeException("Product Name Exist!");
 		}
 		else {			
+			product.setStockGudang(product.getStock());
 			return productRepo.save(product);
 		}
 	}
@@ -101,31 +102,48 @@ public class ProductController {
 	}
 	//edit produk tanpa hilang kategori
 	int contoh3 = 9999;
+	int contoh4 = 999;
 	@PutMapping("/{id}")
 	public Product editProduct(@PathVariable int id, @RequestBody Product product) {
 		Product findProduct = productRepo.findById(id).get();
 		product.setId(id);
+		if (findProduct.getStock() == findProduct.getStockGudang()) {			
+			product.setStockGudang(product.getStock());
+		}
+		else if(findProduct.getStock() != findProduct.getStockGudang()) {
+			 int selisihStock = findProduct.getStockGudang() - findProduct.getStock();
+			 product.setStockGudang(product.getStock());
+			 product.setStock(product.getStock() - selisihStock);
+		}
 		product.setCategories(findProduct.getCategories());
 		if (product.getImage() == "") {
 			product.setImage(findProduct.getImage());
 		}
 		product.setPaket(findProduct.getPaket());
-		if (findProduct.getPaket() != null) {			
-//			System.out.println(findProduct.getPrice());
-//			System.out.println(findProduct.getPaket().getHargaPaket());
-//			System.out.println(product.getPrice());
+		if (findProduct.getPaket() != null) {		
 			findProduct.getPaket().setHargaPaket(findProduct.getPaket().getHargaPaket() - findProduct.getPrice() + product.getPrice());
 			productRepo.save(product);
-			findProduct.setStock(product.getStock());
-			findProduct.getPaket().setStockPaket(0);
-			System.out.println(findProduct.getPaket().getStockPaket());
-			paketRepo.save(findProduct.getPaket());
+			contoh3 = 999;
+			contoh4 =999;
 			findProduct.getPaket().getProducts().forEach(val ->{
-				if (contoh3 > val.getStock()) {
-					contoh3 = val.getStock();
+				if (contoh3 > val.getStockGudang()) {
+					contoh3 = val.getStockGudang();
+				if (contoh4 > val.getStock()) {
+					contoh4 = val.getStock();
+				}
 				}
 			});
-			findProduct.getPaket().setStockPaket(contoh3);
+			System.out.println(contoh3);
+			if (findProduct.getPaket().getStockPaket() == findProduct.getPaket().getStockPaketGudang()) {				
+				findProduct.getPaket().setStockPaketGudang(contoh3);
+				findProduct.getPaket().setStockPaket(contoh3);
+			}
+			else if(findProduct.getPaket().getStockPaket() != findProduct.getPaket().getStockPaketGudang()) {
+				findProduct.getPaket().setStockPaketGudang(contoh3);
+				paketRepo.save(findProduct.getPaket());
+				int selisihPaket = findProduct.getPaket().getStockPaketGudang() - contoh4;
+				findProduct.getPaket().setStockPaket(contoh3 - selisihPaket);
+			}
 			paketRepo.save(findProduct.getPaket());
 		}
 		
@@ -154,9 +172,11 @@ public class ProductController {
 				contoh2 = val.getStock();					
 			}
 		});
+		findPaket.setStockPaketGudang(contoh2);
 		findPaket.setStockPaket(contoh2);
 		if (findPaket.getHargaPaket() == 0) {
 			findPaket.setStockPaket(0);
+			findPaket.setStockPaketGudang(0);
 		}
 		paketRepo.save(findPaket);
 		productRepo.delete(findProduct);
@@ -233,59 +253,65 @@ public class ProductController {
 		System.out.println(productName + paketName);
 		Product findProduct = productRepo.findByProductName(productName).get();
 		Paket findPaket = paketRepo.findByNamaPaket(paketName).get();
-		contoh = 0;
-		contoh2 = 999;
-		findPaket.setHargaPaket(0);
-		paketRepo.save(findPaket);
-		if (findProduct.getPaket()==null) {			
-			findProduct.setPaket(findPaket);
+		if (findPaket.getStockPaket() == findPaket.getStockPaketGudang()) {			
+			contoh = 0;
+			contoh2 = 999;
+			findPaket.setHargaPaket(0);
+			paketRepo.save(findPaket);
+			if (findProduct.getPaket()==null) {			
+				findProduct.setPaket(findPaket);
+				productRepo.save(findProduct);
+				findPaket.getProducts().forEach(val ->{
+					if (contoh2 > val.getStock()) {
+						contoh2 = val.getStock();					
+					}
+					contoh +=  val.getPrice();
+				});
+				
+				System.out.println(contoh2);
+				findPaket.setHargaPaket(contoh);
+				findPaket.setStockPaket(contoh2);
+				findPaket.setStockPaketGudang(contoh2);
+				paketRepo.save(findPaket);
+				return findProduct;
+			}
+			else if(findProduct.getPaket() == findPaket) {			
+				throw new RuntimeException("Product sudah dalam 1 paket yang sama");
+			}
+			findProduct.getPaket().setHargaPaket(findProduct.getPaket().getHargaPaket() - findProduct.getPrice());
+			int cariId =  findProduct.getPaket().getId();
+			findProduct.setPaket(null);
 			productRepo.save(findProduct);
+			contoh2 = 999;
+			Paket findPaketToEditStockPaket = paketRepo.findById(cariId).get();
+			findPaketToEditStockPaket.getProducts().forEach( val ->{
+				if (contoh2 > val.getStock()) {
+					contoh2 = val.getStock();					
+				}
+			});
+			System.out.println(contoh2);
+			findPaketToEditStockPaket.setStockPaket(contoh2);
+			if (findPaketToEditStockPaket.getHargaPaket() == 0) {
+				findPaketToEditStockPaket.setStockPaket(0);
+			}
+			paketRepo.save(findPaketToEditStockPaket);
+			findProduct.setPaket(findPaket);
+			paketRepo.save(findPaket);
+			contoh2 = 999;
 			findPaket.getProducts().forEach(val ->{
 				if (contoh2 > val.getStock()) {
 					contoh2 = val.getStock();					
 				}
 				contoh +=  val.getPrice();
 			});
-			
-			System.out.println(contoh2);
 			findPaket.setHargaPaket(contoh);
+			findPaket.setStockPaketGudang(contoh2);
 			findPaket.setStockPaket(contoh2);
 			paketRepo.save(findPaket);
 			return findProduct;
 		}
-		else if(findProduct.getPaket() == findPaket) {			
-			throw new RuntimeException("Product sudah dalam 1 paket yang sama");
+		else {
+			throw new RuntimeException("Paket tersebut masih dalam proses transaksi");
 		}
-		findProduct.getPaket().setHargaPaket(findProduct.getPaket().getHargaPaket() - findProduct.getPrice());
-		int cariId =  findProduct.getPaket().getId();
-		findProduct.setPaket(null);
-		productRepo.save(findProduct);
-		contoh2 = 999;
-		Paket findPaketToEditStockPaket = paketRepo.findById(cariId).get();
-		findPaketToEditStockPaket.getProducts().forEach( val ->{
-			if (contoh2 > val.getStock()) {
-				contoh2 = val.getStock();					
-			}
-		});
-		System.out.println(contoh2);
-		findPaketToEditStockPaket.setStockPaket(contoh2);
-		if (findPaketToEditStockPaket.getHargaPaket() == 0) {
-			findPaketToEditStockPaket.setStockPaket(0);
-		}
-		paketRepo.save(findPaketToEditStockPaket);
-		findProduct.setPaket(findPaket);
-		paketRepo.save(findPaket);
-		contoh2 = 999;
-		findPaket.getProducts().forEach(val ->{
-			if (contoh2 > val.getStock()) {
-				contoh2 = val.getStock();					
-			}
-			contoh +=  val.getPrice();
-		});
-		findPaket.setHargaPaket(contoh);
-		findPaket.setStockPaket(contoh2);
-		paketRepo.save(findPaket);
-		return findProduct;
-		
 	}
 }

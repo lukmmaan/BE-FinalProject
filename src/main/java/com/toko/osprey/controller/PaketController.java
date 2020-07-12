@@ -45,6 +45,7 @@ public class PaketController {
 			paket.setHargaPaket(0);
 			paket.setSoldPaket(0);
 			paket.setStockPaket(0);
+			paket.setStockPaketGudang(0);
 			paket.setProducts(null);
 			return paketRepo.save(paket);
 		}
@@ -79,6 +80,7 @@ public class PaketController {
 				contoh2 = val.getStock();					
 			}
 		});
+		findPaket.setStockPaketGudang(contoh2);
 		findPaket.setStockPaket(contoh2);
 		if (findPaket.getHargaPaket() == 0) {
 			findPaket.setStockPaket(0);

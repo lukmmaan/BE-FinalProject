@@ -27,6 +27,7 @@ public class Product {
 	private String image;
 	private String description;
 	private int stock;
+	private int stockGudang;
 	private String size;
 	private int sold;
 	
@@ -43,8 +44,24 @@ public class Product {
 	@JsonIgnore
 	private List<Cart> carts;
 	
+	@OneToMany(fetch = FetchType.LAZY, mappedBy="product",cascade = CascadeType.ALL)
+	@JsonIgnore
+	private List<TransactionsDetails> transactionsDetails;
 	
 	
+	
+	public List<TransactionsDetails> getTransactionsDetails() {
+		return transactionsDetails;
+	}
+	public void setTransactionsDetails(List<TransactionsDetails> transactionsDetails) {
+		this.transactionsDetails = transactionsDetails;
+	}
+	public int getStockGudang() {
+		return stockGudang;
+	}
+	public void setStockGudang(int stockGudang) {
+		this.stockGudang = stockGudang;
+	}
 	public List<Cart> getCarts() {
 		return carts;
 	}

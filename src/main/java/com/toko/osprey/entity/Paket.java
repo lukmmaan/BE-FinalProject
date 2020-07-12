@@ -21,6 +21,7 @@ public class Paket {
 	private String namaPaket;
 	private double hargaPaket;
 	private int stockPaket;
+	private int stockPaketGudang;
 	private int soldPaket;
 	private String imagePaket;
 	
@@ -31,8 +32,23 @@ public class Paket {
 	@JsonIgnore
 	private List<Cart> carts;
 	
+	@OneToMany(fetch = FetchType.LAZY, mappedBy="paket",cascade = CascadeType.ALL)
+	@JsonIgnore
+	private List<TransactionsDetails> transactionsDetails;
 	
 	
+	public List<TransactionsDetails> getTransactionsDetails() {
+		return transactionsDetails;
+	}
+	public void setTransactionsDetails(List<TransactionsDetails> transactionsDetails) {
+		this.transactionsDetails = transactionsDetails;
+	}
+	public int getStockPaketGudang() {
+		return stockPaketGudang;
+	}
+	public void setStockPaketGudang(int stockPaketGudang) {
+		this.stockPaketGudang = stockPaketGudang;
+	}
 	public List<Cart> getCarts() {
 		return carts;
 	}

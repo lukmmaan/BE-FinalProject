@@ -85,4 +85,44 @@ public class CartController {
 	public void deleteCart(@PathVariable int cartId) {
 		cartRepo.deleteById(cartId);
 	}
+	int contoh3 = 9999;
+//	int contoh4 = 9999;
+	@PutMapping("/update/{userId}")
+	public String updateQtyProductPaket(@PathVariable int userId) {
+		Iterable<Cart> findUser = cartRepo.findByUserId(userId);
+		findUser.forEach(val ->{
+			if (val.getPaket()==null) {
+				Product findProduct = productRepo.findById(val.getProduct().getId()).get();
+				if (findProduct.getPaket() == null) {
+					findProduct.setStock(findProduct.getStock() - val.getQuantity());
+					productRepo.save(findProduct);
+				}
+				else {					
+					findProduct.setStock(findProduct.getStock() - val.getQuantity());
+					contoh3=999;
+//					contoh4 =999;
+					findProduct.getPaket().getProducts().forEach(value ->{
+						if (contoh3 > value.getStock()) {
+							contoh3 = value.getStock();
+//							contoh4 = value.getStockGudang();
+						}
+					});
+					findProduct.getPaket().setStockPaket(contoh3);
+//					findProduct.getPaket().setStockPaketGudang(contoh4);
+					paketRepo.save(findProduct.getPaket());
+					productRepo.save(findProduct);				
+				}
+			}
+			else {
+				Paket findPaket = paketRepo.findById(val.getPaket().getId()).get();
+				findPaket.setStockPaket(findPaket.getStockPaket() - val.getQuantity());
+				findPaket.getProducts().forEach(value ->{
+					value.setStock(value.getStock() - val.getQuantity());
+				});
+				productRepo.saveAll(findPaket.getProducts());
+				paketRepo.save(findPaket);
+			}
+		});
+		return "Stock Paket dan Product Berhasil Terubah";
+	}
 }
