@@ -55,6 +55,11 @@ public class ProductController {
 	public Iterable<Product> getProduct(){
 		return productRepo.findAll();
 	}
+	
+	@GetMapping("/home")
+	public Iterable<Product> getProductHome(){
+		return productRepo.findProductHome();
+	}
 	@GetMapping("/{minPrice}/{maxPrice}/{orderBy}/{urutan}/{offset}")
 	public Iterable<Product> findProductByPrice(@PathVariable double minPrice, 
 			@PathVariable double maxPrice, @RequestParam String productName,
@@ -291,8 +296,10 @@ public class ProductController {
 			});
 			System.out.println(contoh2);
 			findPaketToEditStockPaket.setStockPaket(contoh2);
+			findPaketToEditStockPaket.setStockPaketGudang(contoh2);
 			if (findPaketToEditStockPaket.getHargaPaket() == 0) {
 				findPaketToEditStockPaket.setStockPaket(0);
+				findPaketToEditStockPaket.setStockPaketGudang(0);
 			}
 			paketRepo.save(findPaketToEditStockPaket);
 			findProduct.setPaket(findPaket);
@@ -313,5 +320,26 @@ public class ProductController {
 		else {
 			throw new RuntimeException("Paket tersebut masih dalam proses transaksi");
 		}
+	}
+	
+	@GetMapping("/charts/{minPrice}/{maxPrice}")
+	public Iterable<Product> getCharts(@PathVariable int minPrice, @PathVariable int maxPrice, @RequestParam String productName,@RequestParam String urutan){
+		if (maxPrice== 0) {
+			maxPrice = 9999999;
+		}
+		if (urutan.equals("asc")) {
+			return productRepo.ChartProductAsc(productName, minPrice, maxPrice);
+		}
+		return productRepo.ChartProductDesc(productName, minPrice, maxPrice);
+	}
+	@GetMapping("/charts/category/{minPrice}/{maxPrice}")
+	public Iterable<Product> getChartsWithCategory(@PathVariable int minPrice, @PathVariable int maxPrice,@RequestParam String categoryName, @RequestParam String productName,@RequestParam String urutan){
+		if (maxPrice== 0) {
+			maxPrice = 9999999;
+		}
+		if (urutan.equals("asc")) {
+			return productRepo.ChartProductWithCategoryAsc(categoryName, productName, minPrice, maxPrice);
+		}
+		return productRepo.ChartProductWithCategoryDesc(categoryName, productName, minPrice, maxPrice);
 	}
 }

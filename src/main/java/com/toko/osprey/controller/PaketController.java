@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.toko.osprey.dao.PaketRepo;
@@ -57,6 +58,20 @@ public class PaketController {
 		return paketRepo.findAll();
 	}
 	
+	//get paket filter
+	@GetMapping("/filter/{minPrice}/{maxPrice}")
+	public Iterable<Paket> getAllPaket(@PathVariable int minPrice, @PathVariable int maxPrice, @RequestParam String namaPaket, @RequestParam String urutan){
+		if (maxPrice == 0) {
+			maxPrice = 9999999;
+		}
+		if (urutan.equals("asc")) {
+			return paketRepo.getPaketFilterAsc(namaPaket, minPrice, maxPrice);
+		}
+		else {
+			return paketRepo.getPaketFilterDesc(namaPaket, minPrice, maxPrice);
+		}
+	}
+	
 	// GET PAKET DENGAN PRODUCT
 	@GetMapping("/{paketId}")
 	public List<Product> getPaketWithProduct(@PathVariable int paketId) {
@@ -82,8 +97,10 @@ public class PaketController {
 		});
 		findPaket.setStockPaketGudang(contoh2);
 		findPaket.setStockPaket(contoh2);
-		if (findPaket.getHargaPaket() == 0) {
+		if (findPaket.getProducts().size()==0) {
 			findPaket.setStockPaket(0);
+			findPaket.setStockPaketGudang(0);
+			findPaket.setHargaPaket(0);
 		}
 		paketRepo.save(findPaket);
 	}
@@ -97,13 +114,19 @@ public class PaketController {
 	}
 	
 	@DeleteMapping("/deletepaket/{id}")
-	public void DeletePaket(@PathVariable int id) {
+	public String DeletePaket(@PathVariable int id) {
 		Paket findPaket = paketRepo.findById(id).get();
-		findPaket.getProducts().forEach(val ->{
-			val.setPaket(null);
-			productRepo.save(val);
-		});
-		findPaket.setProducts(null);
-		paketRepo.deleteById(id);
+		if(findPaket.getStockPaket() != findPaket.getStockPaketGudang()) {
+			throw new RuntimeException("Tidak Bisa, Karena paket atau product dalam paket tersebut masih dalam transaksi");
+		}
+		else {			
+			findPaket.getProducts().forEach(val ->{
+				val.setPaket(null);
+				productRepo.save(val);
+			});
+			findPaket.setProducts(null);
+			paketRepo.deleteById(id);
+			return "Paket Berhasil dihapus";
+		}
 	}
 }

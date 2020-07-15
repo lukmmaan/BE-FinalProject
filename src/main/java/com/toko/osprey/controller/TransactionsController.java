@@ -15,6 +15,8 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +41,7 @@ import com.toko.osprey.dao.UserRepo;
 import com.toko.osprey.entity.Product;
 import com.toko.osprey.entity.Transactions;
 import com.toko.osprey.entity.User;
+import com.toko.osprey.util.EmailUtil;
 
 @RestController
 @CrossOrigin
@@ -55,6 +58,10 @@ public class TransactionsController {
 	private ProductRepo productRepo;
 	@Autowired
 	private PaketRepo paketRepo;
+	
+	@Autowired
+	private EmailUtil emailUtil;
+	private PasswordEncoder pwEncoder =  new BCryptPasswordEncoder();
 	
 	private String uploadPath = System.getProperty("user.dir") + "\\src\\main\\resources\\static\\images\\";
 	
@@ -123,7 +130,8 @@ public class TransactionsController {
 	}
 	
 	int contoh3 = 9999;
-//	int contoh4 = 9999;
+	String message ="";
+	int index = 1;
 	@PutMapping("/accept/{transactionsId}")
 	public Transactions acceptTransactions(@PathVariable int transactionsId) {
 		Transactions findTransactions = transactionsRepo.findById(transactionsId).get();
@@ -133,12 +141,13 @@ public class TransactionsController {
 		
 		findTransactions.setTanggalAcc(formatter.format(date));
 		findTransactions.setStatusPengiriman("Sudah Dikirim");
-		contoh3 = 9999;
-//		contoh4 = 9999;
+		index = 1;
+		message ="";
 		findTransactions.getTransactionsDetails().forEach(val ->{
 			if (val.getPaket() == null) {
 				if (val.getProduct().getPaket() != null) {					
 					val.getProduct().setStockGudang(val.getProduct().getStock());
+					contoh3 = 9999;
 					val.getProduct().setSold(val.getProduct().getSold() + val.getQuantity());
 					productRepo.save(val.getProduct());
 					val.getProduct().getPaket().getProducts().forEach(value ->{
@@ -158,6 +167,7 @@ public class TransactionsController {
 			}
 			else {
 				val.getPaket().setStockPaketGudang(val.getPaket().getStockPaket());
+				val.getPaket().setSoldPaket(val.getPaket().getSoldPaket() + val.getQuantity());
 				paketRepo.save(val.getPaket());
 				val.getPaket().getProducts().forEach(value ->{
 					value.setStockGudang(value.getStockGudang() - val.getQuantity());
@@ -165,6 +175,28 @@ public class TransactionsController {
 				productRepo.saveAll(val.getPaket().getProducts());
 			}
 		});
+		
+		message = "<h1>Selamat! Pembelian Anda Berhasil</h1>\n";
+		message += "<h3> Akun dengan username " + findTransactions.getUser().getUsername() + " telah bertransaksi seperti berikut : </h3>\n";
+		message += "<h4> Tanggal Beli : " + findTransactions.getTanggalBeli() + "</h4> \n";
+		message += "<h4> Tanggal Acc : " + findTransactions.getTanggalAcc() + "</h4> \n";
+		message += "<h4> Jasa Pengiriman: " + findTransactions.getJasaPengiriman() + "</h4> \n";
+		message += "<h4> Price : Rp." + findTransactions.getTotalPrice() + "</h4> \n";
+		message += "<h4> Status : " + findTransactions.getStatus() +" & "+ findTransactions.getStatusPengiriman() + "</h4> \n";	
+		message += "<h4> Dengan Detail Seperti Berikut : </h4> \n";
+		findTransactions.getTransactionsDetails().forEach(val ->{
+			if (val.getPaket() == null) {				
+				message += "<h5>"+index +". "+ val.getProduct().getProductName() +" dengan harga Rp."+ val.getPrice()+", sebanyak "
+			+ val.getQuantity()+ " pcs. Total harga sebanyak Quantity : Rp."+ val.getTotalPriceProduct() + ". (Product)"+ "</h5> \n";
+			}
+			else {
+				message += "<h5>"+index +". "+ val.getPaket().getNamaPaket() +" dengan harga "+ val.getPrice()+" sebanyak "
+						+ val.getQuantity()+ " total harga sebanyak Quantity adalah : Rp."+ val.getTotalPriceProduct()+". (Paket)" +"</h5> \n";
+			}
+			index++;
+		});
+		String judulPesan = "INVOICE " + findTransactions.getUser().getUsername() + " " + findTransactions.getTanggalAcc();
+		emailUtil.sendEmail(findTransactions.getUser().getEmail(), judulPesan, message);
 		transactionsRepo.save(findTransactions);
 		return findTransactions;
 		

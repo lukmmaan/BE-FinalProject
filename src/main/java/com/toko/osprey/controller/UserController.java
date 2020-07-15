@@ -32,7 +32,7 @@ public class UserController {
 	private EmailUtil emailUtil;
 	private PasswordEncoder pwEncoder =  new BCryptPasswordEncoder();
 	
-	@GetMapping("id/{userId}")
+	@GetMapping("/id/{userId}")
 	public Optional<User> showUser(@PathVariable int userId) {
 		return userRepo.findById(userId);
 	}
@@ -85,7 +85,7 @@ public class UserController {
 			return savedUser;
 		}
 		System.out.println(oldPassword);
-		throw new RuntimeException("Password Not Match");
+		throw new RuntimeException("Old Password Not Match");
 	}
 	
 	//kirim Email lupa password
@@ -96,7 +96,8 @@ public class UserController {
 			 throw new RuntimeException("Username doesn't Exist!");
 		if (findUsername.get().isVerified() == true) {			
 			String verifyToken = pwEncoder.encode(findUsername.get().getUsername() + findUsername.get().getEmail());
-			String message = "klik link ini untuk ganti password "+ "http://localhost:3000/LupaPassword/" + findUsername.get().getUsername()+"/"+ verifyToken;	
+			System.out.println(verifyToken);
+			String message = "klik link ini untuk ganti password "+ "http://localhost:3000/LupaPassword/" + findUsername.get().getUsername()+"/"+ verifyToken.substring(15, 20);	
 			emailUtil.sendEmail(findUsername.get().getEmail(), "Verifikasi Ganti Password", message);
 			return findUsername.get();
 		}
@@ -126,6 +127,16 @@ public class UserController {
 	//register
 	@PostMapping
 	public User addUser(@RequestBody User user) {
+		if (user.getUsername().equals("")) {
+			throw new RuntimeException("Username Kosong");
+		}
+		else if (user.getEmail().equals("")) {
+			throw new RuntimeException("Email Kosong");
+		}
+		else if (user.getPassword().equals("")) {
+			throw new RuntimeException("Password Kosong");
+		}
+		
 		Optional<User> findUsername = userRepo.findByUsername(user.getUsername());
 		Optional<User> findEmail = userRepo.findByEmail(user.getEmail());
 		if (findUsername.toString()!= "Optional.empty") 	
