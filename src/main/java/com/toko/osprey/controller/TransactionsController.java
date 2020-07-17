@@ -130,6 +130,7 @@ public class TransactionsController {
 	}
 	
 	int contoh3 = 9999;
+	int contoh4 = 9999;
 	String message ="";
 	int index = 1;
 	@PutMapping("/accept/{transactionsId}")
@@ -146,27 +147,31 @@ public class TransactionsController {
 		findTransactions.getTransactionsDetails().forEach(val ->{
 			if (val.getPaket() == null) {
 				if (val.getProduct().getPaket() != null) {					
-					val.getProduct().setStockGudang(val.getProduct().getStock());
+					val.getProduct().setStockGudang(val.getProduct().getStockGudang() - val.getQuantity());
 					contoh3 = 9999;
+					contoh4 = 9999;
 					val.getProduct().setSold(val.getProduct().getSold() + val.getQuantity());
 					productRepo.save(val.getProduct());
 					val.getProduct().getPaket().getProducts().forEach(value ->{
 						if (contoh3 > value.getStock()) {
 							contoh3 = value.getStock();
 						}
+						if (contoh4 > value.getStockGudang()) {
+							contoh4 = value.getStockGudang();
+						}
 					});
 					val.getProduct().getPaket().setStockPaket(contoh3);
-					val.getProduct().getPaket().setStockPaketGudang(contoh3);
+					val.getProduct().getPaket().setStockPaketGudang(contoh4);
 					paketRepo.save(val.getProduct().getPaket());
 				}
 				else {
-					val.getProduct().setStockGudang(val.getProduct().getStock());
+					val.getProduct().setStockGudang(val.getProduct().getStockGudang() - val.getQuantity());
 					val.getProduct().setSold(val.getProduct().getSold() + val.getQuantity());
 					productRepo.save(val.getProduct());
 				}
 			}
 			else {
-				val.getPaket().setStockPaketGudang(val.getPaket().getStockPaket());
+				val.getPaket().setStockPaketGudang(val.getPaket().getStockPaketGudang() - val.getQuantity());
 				val.getPaket().setSoldPaket(val.getPaket().getSoldPaket() + val.getQuantity());
 				paketRepo.save(val.getPaket());
 				val.getPaket().getProducts().forEach(value ->{
