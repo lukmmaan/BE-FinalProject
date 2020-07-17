@@ -17,4 +17,8 @@ public interface CartRepo extends JpaRepository<Cart, Integer>{
 	//get all cart by user
 	@Query(value = "SELECT * FROM cart WHERE user_id= ?1",nativeQuery = true)
 	public Iterable<Cart> findByUserId(int userId);
+	@Query(value = "SELECT * FROM cart WHERE product_id= ?1 and user_id = ?2",nativeQuery = true)
+	public Cart findCartByProductId(int productId, int userId);
+	@Query(value = "SELECT * FROM cart WHERE paket_id= ?1 and user_id = ?2",nativeQuery = true)
+	public Cart findCartBypaketId(int paketId, int userId);
 }

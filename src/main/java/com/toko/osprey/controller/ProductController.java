@@ -156,35 +156,73 @@ public class ProductController {
 	}
 	//delete product dan hapus hubungan dengan category many to many dan hapus hubungan dengan paket one to many
 	@DeleteMapping("/{id}")
-	public void deleteProduct(@PathVariable int id) {
+	public String deleteProduct(@PathVariable int id) {
 		Product findProduct = productRepo.findById(id).get();
-		findProduct.getCategories().forEach(categories -> {
-			List<Product> categoriesProduct = categories.getProducts();
-			categoriesProduct.remove(findProduct);
-			categoryRepo.save(categories);
-		});				
-//		findProduct.setPaket(null);
-		findProduct.setCategories(null);
-		findProduct.getPaket().setHargaPaket(findProduct.getPaket().getHargaPaket() - findProduct.getPrice());
-		System.out.println(findProduct.getPaket().getHargaPaket());
-		int idPaket = findProduct.getPaket().getId();
-		findProduct.setPaket(null);
-		Paket findPaket = paketRepo.findById(idPaket).get();
-		contoh2 = 999;
-		productRepo.save(findProduct);
-		findPaket.getProducts().forEach(val ->{
-			if (contoh2 > val.getStock()) {
-				contoh2 = val.getStock();					
+		if (findProduct.getCategories().isEmpty()) {
+			if (findProduct.getPaket() ==null) {				
+				productRepo.delete(findProduct);
+				return "Sudah Terhapus";
 			}
-		});
-		findPaket.setStockPaketGudang(contoh2);
-		findPaket.setStockPaket(contoh2);
-		if (findPaket.getHargaPaket() == 0) {
-			findPaket.setStockPaket(0);
-			findPaket.setStockPaketGudang(0);
+			else {
+				findProduct.getPaket().setHargaPaket(findProduct.getPaket().getHargaPaket() - findProduct.getPrice());
+				System.out.println(findProduct.getPaket().getHargaPaket());
+				int idPaket = findProduct.getPaket().getId();
+				findProduct.setPaket(null);
+				Paket findPaket = paketRepo.findById(idPaket).get();
+				contoh2 = 999;
+				productRepo.save(findProduct);
+				findPaket.getProducts().forEach(val ->{
+					if (contoh2 > val.getStock()) {
+						contoh2 = val.getStock();					
+					}
+				});
+				findPaket.setStockPaketGudang(contoh2);
+				findPaket.setStockPaket(contoh2);
+				if (findPaket.getHargaPaket() == 0) {
+					findPaket.setStockPaket(0);
+					findPaket.setStockPaketGudang(0);
+				}
+				paketRepo.save(findPaket);
+				productRepo.delete(findProduct);
+				return "Sudah Terhapus";
+			}
 		}
-		paketRepo.save(findPaket);
-		productRepo.delete(findProduct);
+		else {			
+			findProduct.getCategories().forEach(categories -> {
+				List<Product> categoriesProduct = categories.getProducts();
+				categoriesProduct.remove(findProduct);
+				categoryRepo.save(categories);
+			});				
+			findProduct.setCategories(null);
+			productRepo.save(findProduct);
+			if (findProduct.getPaket() == null) {
+				productRepo.deleteById(id);
+				return "Sudah Terhapus";
+			}
+			else {				
+				findProduct.getPaket().setHargaPaket(findProduct.getPaket().getHargaPaket() - findProduct.getPrice());
+				System.out.println(findProduct.getPaket().getHargaPaket());
+				int idPaket = findProduct.getPaket().getId();
+				findProduct.setPaket(null);
+				Paket findPaket = paketRepo.findById(idPaket).get();
+				contoh2 = 999;
+				productRepo.save(findProduct);
+				findPaket.getProducts().forEach(val ->{
+					if (contoh2 > val.getStock()) {
+						contoh2 = val.getStock();					
+					}
+				});
+				findPaket.setStockPaketGudang(contoh2);
+				findPaket.setStockPaket(contoh2);
+				if (findPaket.getHargaPaket() == 0) {
+					findPaket.setStockPaket(0);
+					findPaket.setStockPaketGudang(0);
+				}
+				paketRepo.save(findPaket);
+				productRepo.delete(findProduct);
+				return "Sudah Terhapus";
+			}
+		}
 	}
 	// delete category dalam suatu produk
 	@DeleteMapping("/{productId}/category/{categoryId}")
