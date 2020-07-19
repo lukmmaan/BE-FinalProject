@@ -181,7 +181,7 @@ public class TransactionsController {
 			}
 		});
 		message = "<h1>Selamat! Pembelian Anda Berhasil</h1>\n";
-		message += "<img src=\"https://www.netclipart.com/pp/m/54-546899_osprey-logo-osprey-packs-outdoor-brands-rucksack-osprey.png\" />";
+//		message += "<img src=\"https://www.netclipart.com/pp/m/54-546899_osprey-logo-osprey-packs-outdoor-brands-rucksack-osprey.png\" />";
 		message += "<h3> Akun dengan username " + findTransactions.getUser().getUsername() + " telah bertransaksi seperti berikut : </h3>\n";
 		message += "<h4> Tanggal Beli : " + findTransactions.getTanggalBeli() + "</h4> \n";
 		message += "<h4> Tanggal Acc : " + findTransactions.getTanggalAcc() + "</h4> \n";

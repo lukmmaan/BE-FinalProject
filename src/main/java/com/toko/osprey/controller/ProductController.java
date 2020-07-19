@@ -92,16 +92,13 @@ public class ProductController {
 	//add categories to product
 	@PostMapping("/{productName}/category/{categoryName}")
 	public Product addCategoryToProduct(@PathVariable String productName, @PathVariable String categoryName) {
-//		Product findCategories = productRepo.findByProductName(productName).get();
-//		System.out.println(findCategories.getCategories());
-//		findCategories.getCategories().forEach(categories ->{
-//			List<Product> categoriesProduct = categories.getCategoryName();
-//			if (categoriesProduct.toString()!= "Optional.empty") {				
-//				throw new RuntimeException("Category Name Exist!");
-//			}
-//		});
 		Product findProduct = productRepo.findByProductName(productName).get();
 		Category findCategory = categoryRepo.findByCategoryName(categoryName).get();
+		findProduct.getCategories().forEach(val ->{
+			if (val.getCategoryName().equals(findCategory.getCategoryName())) {
+				throw new RuntimeException("Product Telah Memiliki Kategori yang sama!");
+			}
+		});
 		findProduct.getCategories().add(findCategory);
 		return productRepo.save(findProduct);
 	}
@@ -121,9 +118,6 @@ public class ProductController {
 			 product.setStock(product.getStock() - selisihStock);
 		}
 		product.setCategories(findProduct.getCategories());
-		if (product.getImage() == "") {
-			product.setImage(findProduct.getImage());
-		}
 		product.setPaket(findProduct.getPaket());
 		if (findProduct.getPaket() != null) {		
 			findProduct.getPaket().setHargaPaket(findProduct.getPaket().getHargaPaket() - findProduct.getPrice() + product.getPrice());
@@ -296,67 +290,79 @@ public class ProductController {
 		System.out.println(productName + paketName);
 		Product findProduct = productRepo.findByProductName(productName).get();
 		Paket findPaket = paketRepo.findByNamaPaket(paketName).get();
-		if (findPaket.getStockPaket() == findPaket.getStockPaketGudang()) {			
-			contoh = 0;
-			contoh2 = 999;
-			findPaket.setHargaPaket(0);
-			paketRepo.save(findPaket);
-			if (findProduct.getPaket()==null) {			
-				findProduct.setPaket(findPaket);
-				productRepo.save(findProduct);
-				findPaket.getProducts().forEach(val ->{
-					if (contoh2 > val.getStock()) {
-						contoh2 = val.getStock();					
-					}
-					contoh +=  val.getPrice();
-				});
-				
-				System.out.println(contoh2);
-				findPaket.setHargaPaket(contoh);
-				findPaket.setStockPaket(contoh2);
-				findPaket.setStockPaketGudang(contoh2);
-				paketRepo.save(findPaket);
-				return findProduct;
-			}
-			else if(findProduct.getPaket() == findPaket) {			
-				throw new RuntimeException("Product sudah dalam 1 paket yang sama");
-			}
-			findProduct.getPaket().setHargaPaket(findProduct.getPaket().getHargaPaket() - findProduct.getPrice());
-			int cariId =  findProduct.getPaket().getId();
-			findProduct.setPaket(null);
-			productRepo.save(findProduct);
-			contoh2 = 999;
-			Paket findPaketToEditStockPaket = paketRepo.findById(cariId).get();
-			findPaketToEditStockPaket.getProducts().forEach( val ->{
-				if (contoh2 > val.getStock()) {
-					contoh2 = val.getStock();					
+		if (findProduct.getPaket() != null) {
+			findProduct.getPaket().getProducts().forEach(val ->{
+				if (val.getStock() != val.getStockGudang()) {
+					throw new RuntimeException("Paket dalam product tersebut masih dalam proses transaksi");
 				}
 			});
-			System.out.println(contoh2);
-			findPaketToEditStockPaket.setStockPaket(contoh2);
-			findPaketToEditStockPaket.setStockPaketGudang(contoh2);
-			if (findPaketToEditStockPaket.getHargaPaket() == 0) {
-				findPaketToEditStockPaket.setStockPaket(0);
-				findPaketToEditStockPaket.setStockPaketGudang(0);
-			}
-			paketRepo.save(findPaketToEditStockPaket);
-			findProduct.setPaket(findPaket);
-			paketRepo.save(findPaket);
-			contoh2 = 999;
+		}
+		if(!findPaket.getProducts().isEmpty()) {
 			findPaket.getProducts().forEach(val ->{
-				if (contoh2 > val.getStock()) {
-					contoh2 = val.getStock();					
+				if (val.getStock() != val.getStockGudang()) {
+					throw new RuntimeException("Ada Product dalam Paket tersebut masih dalam proses transaksi");
 				}
-				contoh +=  val.getPrice();
 			});
-			findPaket.setHargaPaket(contoh);
-			findPaket.setStockPaketGudang(contoh2);
-			findPaket.setStockPaket(contoh2);
+		}
+		if (findProduct.getStock() != findProduct.getStockGudang()) {
+			throw new RuntimeException("Product tersebut masih dalam proses transaksi");
+		}
+		if (findProduct.getPaket()==null) {			
+			findProduct.setPaket(findPaket);
+			productRepo.save(findProduct);
+			findPaket.setHargaPaket(findPaket.getHargaPaket() + findProduct.getPrice());
+			if (findPaket.getStockPaket() > findProduct.getStock() || findPaket.getStockPaket() == 0) {
+				findPaket.setStockPaket(findProduct.getStock());
+				findPaket.setStockPaketGudang(findProduct.getStockGudang());
+			}
 			paketRepo.save(findPaket);
 			return findProduct;
 		}
 		else {
-			throw new RuntimeException("Paket tersebut masih dalam proses transaksi");
+			if(findProduct.getPaket().getNamaPaket().equals(findPaket.getNamaPaket())) {			
+//				System.out.println("masuk");
+				throw new RuntimeException("Product sudah dalam 1 paket yang sama");
+			}
+			else {
+				System.out.println("masuk");
+				findProduct.getPaket().setHargaPaket(findProduct.getPaket().getHargaPaket() - findProduct.getPrice());
+				int cariId =  findProduct.getPaket().getId();
+//				paketRepo.save(findProduct.getPaket());
+				findProduct.setPaket(null);
+				productRepo.save(findProduct);
+				contoh2 = 999;
+				Paket findPaketToEditStockPaket = paketRepo.findById(cariId).get();
+				findPaketToEditStockPaket.getProducts().forEach( val ->{
+					if (contoh2 > val.getStock() && val.getProductName() != findProduct.getProductName()) {
+						contoh2 = val.getStock();					
+					}
+					System.out.println(contoh2);
+				});
+				findPaketToEditStockPaket.setStockPaket(contoh2);
+				findPaketToEditStockPaket.setStockPaketGudang(contoh2);
+				if (findPaketToEditStockPaket.getHargaPaket() == 0) {
+					findPaketToEditStockPaket.setStockPaket(0);
+					findPaketToEditStockPaket.setStockPaketGudang(0);
+				}
+				paketRepo.save(findPaketToEditStockPaket);
+				findProduct.setPaket(findPaket);
+				paketRepo.save(findPaket);
+//				contoh2 = 999;
+				if (findPaket.getStockPaket()==0) {
+					findPaket.setStockPaket(findProduct.getStock());
+					findPaket.setStockPaketGudang(findProduct.getStockGudang());
+				}
+				findPaket.getProducts().forEach(val ->{
+					if (findProduct.getStock() < val.getStock()) {
+						findPaket.setStockPaket(findProduct.getStock());	
+						findPaket.setStockPaketGudang(findProduct.getStockGudang());
+					}
+//					contoh +=  val.getPrice();
+				});
+				findPaket.setHargaPaket(findPaket.getHargaPaket() + findProduct.getPrice());
+				paketRepo.save(findPaket);
+				return findProduct;
+			}
 		}
 	}
 	

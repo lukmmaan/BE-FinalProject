@@ -1,5 +1,6 @@
 package com.toko.osprey.controller;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,11 @@ public class UserController {
 	private EmailUtil emailUtil;
 	private PasswordEncoder pwEncoder =  new BCryptPasswordEncoder();
 	
+	@GetMapping("/semuaUser")
+	public List<User> getAllUser() {
+		return userRepo.findAll();
+	}
+	
 	@GetMapping("/id/{userId}")
 	public Optional<User> showUser(@PathVariable int userId) {
 		return userRepo.findById(userId);
@@ -45,7 +51,7 @@ public class UserController {
 		findUsername.setUsername(null);
 		findUsername.setEmail(null);
 		userRepo.save(findUsername);
-		System.out.println(findUsername.getEmail());
+//		System.out.println(findUsername.getEmail());
 		Optional<User> usernameUsed = userRepo.findByUsername(user.getUsername());
 		if (usernameUsed.toString()!= "Optional.empty") {	
 			findUsername.setUsername(namaSementara);
@@ -64,19 +70,22 @@ public class UserController {
 		findUsername.setEmail(user.getEmail());
 		userRepo.save(findUsername);
 		user.setId(findUsername.getId());
-		user.setVerified(true);
+		user.setVerified(findUsername.isVerified());
 		user.setRole(findUsername.getRole());
 		user.setVerifyToken(findUsername.getVerifyToken());
 		user.setPassword(findUsername.getPassword());
 		User savedUser = userRepo.save(user);
 		savedUser.setPassword(null);
-		System.out.println(findUsername);
+//		System.out.println(findUsername);
 		return savedUser;
 	}
 	//edit password
 	@GetMapping("/password/{userId}/{oldPassword}/{newPassword}")
 	public User passwordEdit(@PathVariable int userId, @PathVariable String oldPassword, @PathVariable String newPassword){
 		User findUser = userRepo.findById(userId).get();
+		if (!findUser.isVerified()) {
+			throw new RuntimeException("Akun Belum Terverifikasi");
+		}
 		if (pwEncoder.matches(oldPassword, findUser.getPassword())) {
 			String encodedPassword = pwEncoder.encode(newPassword);
 			findUser.setPassword(encodedPassword);
@@ -93,31 +102,44 @@ public class UserController {
 	public User editPassword(@PathVariable String username) {
 		Optional<User> findUsername = userRepo.findByUsername(username);
 		if (findUsername.toString() == "Optional.empty") 	
-			 throw new RuntimeException("Username doesn't Exist!");
-		if (findUsername.get().isVerified() == true) {			
+			 throw new RuntimeException("Username doesn't Exist!");	
 			String verifyToken = pwEncoder.encode(findUsername.get().getUsername() + findUsername.get().getEmail());
 			System.out.println(verifyToken);
 			String message = "klik link ini untuk ganti password "+ "http://localhost:3000/LupaPassword/" + findUsername.get().getUsername()+"/"+ verifyToken.substring(15, 20);	
 			emailUtil.sendEmail(findUsername.get().getEmail(), "Verifikasi Ganti Password", message);
 			return findUsername.get();
-		}
-		throw new RuntimeException("Username doesn't  Verified!");
 	}
 	
+	@GetMapping("/email/verify/{username}")
+	public String verifyDiProfile(@PathVariable String username) {
+		User findUser = userRepo.findByUsername(username).get();
+		String linkToVerify = "http://localhost:8080/users/verify/" + findUser.getUsername() + "?token=" + findUser.getVerifyToken();
+		
+		String message = "<h1>Verify Email !</h1>\n";
+		message += "Akun dengan username " + findUser.getUsername() + " telah terdaftar!\n";
+		message += "Klik <a href=\"" + linkToVerify + "\">link ini</a> untuk verifikasi email anda.";
+		
+		
+		emailUtil.sendEmail(findUser.getEmail(), "Registrasi Akun", message);
+		return "Silahkan Check Email";
+	}
 //	ganti password
 //	@patch("/editLupaPassword")
 	@PutMapping("/editLupaPassword")
 	public User editLupaPassword(@RequestBody User user) {
+		System.out.println(user.getPassword());
+		System.out.println(user.getUsername());
 		User findUsername = userRepo.findByUsername(user.getUsername()).get();
 		user.setId(findUsername.getId());
 		user.setAlamat(findUsername.getAlamat());
 		user.setEmail(findUsername.getEmail());
 		user.setFullName(findUsername.getFullName());
-		user.setVerified(true);
+		user.setVerified(findUsername.isVerified());
 		user.setNoHp(findUsername.getNoHp());
 		user.setRole(findUsername.getRole());
 		user.setUsername(findUsername.getUsername());
 		user.setVerifyToken(findUsername.getVerifyToken());
+		System.out.println(findUsername.getUsername());
 		String encodedPassword = pwEncoder.encode(user.getPassword());
 		user.setPassword(encodedPassword);
 		User savedUser = userRepo.save(user);
